@@ -25,7 +25,7 @@ Try
 	$env:KRE_APPBASE = "../../../../../test/UnitTests"
 
 	# Execute OpenCover with a target of "k test"
-	iex ((Get-ChildItem ($env:USERPROFILE + '\.k\packages\OpenCover'))[0].FullName + '\OpenCover.Console.exe' + ' -register:user -target:"k.cmd" -targetargs:"test" -output:coverage.xml -skipautoprops -returntargetcode -filter:"+[Nito*]*"')
+	iex ((Get-ChildItem ($env:USERPROFILE + '\.k\packages\OpenCover'))[0].FullName + '\OpenCover.Console.exe' + ' -register:user -target:"k.cmd" -targetargs:"test" -output:coverage.xml -skipautoprops -returntargetcode -excludebyattribute:"System.Diagnostics.DebuggerNonUserCodeAttribute" -filter:"+[Nito*]*"')
 
 	# Either display or publish the results
 	If ($env:CI -eq 'True')
