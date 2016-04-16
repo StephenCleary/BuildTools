@@ -1,6 +1,8 @@
-# Set $artifactLocation before invoking this script.
+# Set $artifactLocation and $testProjectLocation before invoking this script.
 
 $ErrorActionPreference = "Stop"
+
+$libPath = Resolve-Path $artifactLocation
 
 Function Verify-OnlyOnePackage
 {
@@ -18,14 +20,12 @@ Verify-OnlyOnePackage 'coveralls.io'
 Verify-OnlyOnePackage 'ReportGenerator'
 
 pushd
-$original_APPBASE = $env:APPBASE
 Try
 {
-	cd $artifactLocation
-	$env:APPBASE = "../../../../../test/UnitTests"
+	cd $testProjectLocation
 
 	# Execute OpenCover with a target of "dnx test"
-	iex ((Get-ChildItem ($env:USERPROFILE + '\.dnx\packages\OpenCover'))[0].FullName + '\OpenCover.Console.exe' + ' -register:user -target:"dnx.cmd" -targetargs:"test" -output:coverage.xml -skipautoprops -returntargetcode -excludebyattribute:"System.Diagnostics.DebuggerNonUserCodeAttribute" -filter:"+[Nito*]*"')
+	iex ((Get-ChildItem ($env:USERPROFILE + '\.dnx\packages\OpenCover'))[0].FullName + '\tools\OpenCover.Console.exe' + ' -register:user -target:"dnx.exe" -targetargs:"--lib ' + $libPath + ' test" -output:coverage.xml -skipautoprops -returntargetcode -excludebyattribute:"System.Diagnostics.DebuggerNonUserCodeAttribute" -filter:"+[Nito*]*"')
 
 	# Either display or publish the results
 	If ($env:CI -eq 'True')
@@ -34,12 +34,11 @@ Try
 	}
 	Else
 	{
-		iex ((Get-ChildItem ($env:USERPROFILE + '\.dnx\packages\ReportGenerator'))[0].FullName + '\ReportGenerator.exe -reports:coverage.xml -targetdir:.')
+		iex ((Get-ChildItem ($env:USERPROFILE + '\.dnx\packages\ReportGenerator'))[0].FullName + '\tools\ReportGenerator.exe -reports:coverage.xml -targetdir:.')
 		./index.htm
 	}
 }
 Finally
 {
 	popd
-	$env:APPBASE = $original_APPBASE
 }
