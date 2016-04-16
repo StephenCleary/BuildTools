@@ -5,10 +5,14 @@
 
 $ErrorActionPreference = "Stop"
 
-$libPath = Resolve-Path $artifactLocation
-md -Force $outputLocation
-$outputPath = Resolve-Path $outputLocation
+$libPath = (Resolve-Path $artifactLocation).Path
+md -Force $outputLocation | Out-Null
+$outputPath = (Resolve-Path $outputLocation).Path
 $outputFile = Join-Path $outputPath -childpath 'coverage.xml'
+
+Write-Output $libPath
+Write-Output $outputPath
+Write-Output $outputFile
 
 Function Verify-OnlyOnePackage
 {
@@ -31,16 +35,22 @@ Try
 	cd $testProjectLocation
 
 	# Execute OpenCover with a target of "dnx test"
-	iex ((Get-ChildItem ($env:USERPROFILE + '\.dnx\packages\OpenCover'))[0].FullName + '\tools\OpenCover.Console.exe' + ' -register:user -target:"dnx.exe" -targetargs:"--lib ' + $libPath + ' test" -output:"' + $outputFile + '" -skipautoprops -returntargetcode -excludebyattribute:"System.Diagnostics.DebuggerNonUserCodeAttribute" -filter:"+[Nito*]*"')
+	$command = (Get-ChildItem ($env:USERPROFILE + '\.dnx\packages\OpenCover'))[0].FullName + '\tools\OpenCover.Console.exe' + ' -register:user -target:"dnx.exe" -targetargs:"--lib ' + $libPath + ' test" -output:"' + $outputFile + '" -skipautoprops -returntargetcode -excludebyattribute:"System.Diagnostics.DebuggerNonUserCodeAttribute" -filter:"+[Nito*]*"'
+	Write-Output $command
+	iex $command
 
 	# Either display or publish the results
 	If ($env:CI -eq 'True')
 	{
-		iex ((Get-ChildItem ($env:USERPROFILE + '\.dnx\packages\coveralls.io'))[0].FullName + '\tools\coveralls.net.exe' + ' --opencover "' + $outputFile + '" --full-sources')
+	    $command = (Get-ChildItem ($env:USERPROFILE + '\.dnx\packages\coveralls.io'))[0].FullName + '\tools\coveralls.net.exe' + ' --opencover "' + $outputFile + '" --full-sources'
+		Write-Output $command
+		iex $command
 	}
 	Else
 	{
-		iex ((Get-ChildItem ($env:USERPROFILE + '\.dnx\packages\ReportGenerator'))[0].FullName + '\tools\ReportGenerator.exe -reports:"' + $outputFile + '" -targetdir:"' + $outputPath + '"')
+		$command = (Get-ChildItem ($env:USERPROFILE + '\.dnx\packages\ReportGenerator'))[0].FullName + '\tools\ReportGenerator.exe -reports:"' + $outputFile + '" -targetdir:"' + $outputPath + '"'
+		Write-Output $command
+		iex $command
 		cd $outputPath
 		./index.htm
 	}
