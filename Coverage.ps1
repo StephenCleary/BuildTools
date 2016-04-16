@@ -35,7 +35,7 @@ Try
 	cd $testProjectLocation
 
 	# Execute OpenCover with a target of "dnx test"
-	$command = (Get-ChildItem ($env:USERPROFILE + '\.dnx\packages\OpenCover'))[0].FullName + '\tools\OpenCover.Console.exe' + ' -register:user -target:"dnx.exe" -targetargs:"--lib ' + $libPath + ' test" -output:"' + $outputFile + '" -skipautoprops -returntargetcode -excludebyattribute:"System.Diagnostics.DebuggerNonUserCodeAttribute" -filter:"+[Nito*]*"'
+	$command = (Get-ChildItem ($env:USERPROFILE + '\.dnx\packages\OpenCover'))[0].FullName + '\tools\OpenCover.Console.exe' + ' -register:user -target:dnx.exe "-targetargs:--lib ' + $libPath + ' test" "-output:' + $outputFile + '" -skipautoprops -returntargetcode "-excludebyattribute:System.Diagnostics.DebuggerNonUserCodeAttribute" "-filter:+[Nito*]*"'
 	Write-Output $command
 	iex $command
 
