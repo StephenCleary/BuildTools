@@ -1,12 +1,18 @@
 # Expected variables:
-#   $testProjectLocation - the relative path to the project that can run "dotnet test".
+#   $testProjectLocations - an array of relative paths to projects that can run "dotnet test".
 #   $outputLocation - the relative path where test results should be stored. This path does not have to exist.
 
 $ErrorActionPreference = "Stop"
 
+Remove-Item $outputPath -Force -Recurse
 md -Force $outputLocation | Out-Null
 $outputPath = (Resolve-Path $outputLocation).Path
 $outputFile = Join-Path $outputPath -childpath 'coverage.xml'
+
+For ($i = 0; $i -ne $testProjectLocations.length; ++$i)
+{
+	$testProjectLocations[$i] = (Resolve-Path $testProjectLocations[$i]).Path
+}
 
 Write-Output $outputPath
 Write-Output $outputFile
@@ -29,17 +35,20 @@ Verify-OnlyOnePackage 'ReportGenerator'
 pushd
 Try
 {
-	cd $testProjectLocation
+	ForEach ($testProjectLocation in $testProjectLocations)
+	{
+		cd $testProjectLocation
 
-	# Execute OpenCover with a target of "dotnet test"
-	$command = (Get-ChildItem ($env:USERPROFILE + '\.nuget\packages\OpenCover'))[0].FullName + '\tools\OpenCover.Console.exe' + ' -register:user -target:dotnet.exe "-targetargs:test" "-output:' + $outputFile + '" -skipautoprops -returntargetcode "-excludebyattribute:System.Diagnostics.DebuggerNonUserCodeAttribute" "-filter:+[Nito*]*"'
-	Write-Output $command
-	iex $command
+		# Execute OpenCover with a target of "dotnet test"
+		$command = (Get-ChildItem ($env:USERPROFILE + '\.nuget\packages\OpenCover'))[0].FullName + '\tools\OpenCover.Console.exe' + ' -register:user -mergeoutput -target:dotnet.exe "-targetargs:test" "-output:' + $outputFile + '" -skipautoprops -returntargetcode "-excludebyattribute:System.Diagnostics.DebuggerNonUserCodeAttribute" "-filter:+[Nito*]*"'
+		Write-Output $command
+		iex $command
+	}
 
 	# Either display or publish the results
 	If ($env:CI -eq 'True')
 	{
-	    $command = (Get-ChildItem ($env:USERPROFILE + '\.nuget\packages\coveralls.io'))[0].FullName + '\tools\coveralls.net.exe' + ' --opencover "' + $outputFile + '" --full-sources'
+		$command = (Get-ChildItem ($env:USERPROFILE + '\.nuget\packages\coveralls.io'))[0].FullName + '\tools\coveralls.net.exe' + ' --opencover "' + $outputFile + '" --full-sources'
 		Write-Output $command
 		iex $command
 	}
