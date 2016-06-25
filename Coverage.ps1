@@ -1,16 +1,13 @@
 # Expected variables:
-#   $artifactLocation - the relative path to the artifact output directory containing pdb files.
-#   $testProjectLocation - the relative path to the project that can run "dnx test".
+#   $testProjectLocation - the relative path to the project that can run "dotnet test".
 #   $outputLocation - the relative path where test results should be stored. This path does not have to exist.
 
 $ErrorActionPreference = "Stop"
 
-$libPath = (Resolve-Path $artifactLocation).Path
 md -Force $outputLocation | Out-Null
 $outputPath = (Resolve-Path $outputLocation).Path
 $outputFile = Join-Path $outputPath -childpath 'coverage.xml'
 
-Write-Output $libPath
 Write-Output $outputPath
 Write-Output $outputFile
 
@@ -18,7 +15,7 @@ Function Verify-OnlyOnePackage
 {
 	param ($name)
 
-	$location = $env:USERPROFILE + '\.dnx\packages\' + $name
+	$location = $env:USERPROFILE + '\.nuget\packages\' + $name
 	If ((Get-ChildItem $location).Count -ne 1)
 	{
 		throw 'Invalid number of packages installed at ' + $location
@@ -34,21 +31,21 @@ Try
 {
 	cd $testProjectLocation
 
-	# Execute OpenCover with a target of "dnx test"
-	$command = (Get-ChildItem ($env:USERPROFILE + '\.dnx\packages\OpenCover'))[0].FullName + '\tools\OpenCover.Console.exe' + ' -register:user -target:dnx.exe "-targetargs:--lib ' + $libPath + ' test" "-output:' + $outputFile + '" -skipautoprops -returntargetcode "-excludebyattribute:System.Diagnostics.DebuggerNonUserCodeAttribute" "-filter:+[Nito*]*"'
+	# Execute OpenCover with a target of "dotnet test"
+	$command = (Get-ChildItem ($env:USERPROFILE + '\.nuget\packages\OpenCover'))[0].FullName + '\tools\OpenCover.Console.exe' + ' -register:user -target:dotnet.exe "-targetargs:test" "-output:' + $outputFile + '" -skipautoprops -returntargetcode "-excludebyattribute:System.Diagnostics.DebuggerNonUserCodeAttribute" "-filter:+[Nito*]*"'
 	Write-Output $command
 	iex $command
 
 	# Either display or publish the results
 	If ($env:CI -eq 'True')
 	{
-	    $command = (Get-ChildItem ($env:USERPROFILE + '\.dnx\packages\coveralls.io'))[0].FullName + '\tools\coveralls.net.exe' + ' --opencover "' + $outputFile + '" --full-sources'
+	    $command = (Get-ChildItem ($env:USERPROFILE + '\.nuget\packages\coveralls.io'))[0].FullName + '\tools\coveralls.net.exe' + ' --opencover "' + $outputFile + '" --full-sources'
 		Write-Output $command
 		iex $command
 	}
 	Else
 	{
-		$command = (Get-ChildItem ($env:USERPROFILE + '\.dnx\packages\ReportGenerator'))[0].FullName + '\tools\ReportGenerator.exe -reports:"' + $outputFile + '" -targetdir:"' + $outputPath + '"'
+		$command = (Get-ChildItem ($env:USERPROFILE + '\.nuget\packages\ReportGenerator'))[0].FullName + '\tools\ReportGenerator.exe -reports:"' + $outputFile + '" -targetdir:"' + $outputPath + '"'
 		Write-Output $command
 		iex $command
 		cd $outputPath
