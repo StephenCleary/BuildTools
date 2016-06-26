@@ -1,6 +1,7 @@
 # Expected variables:
 #   $testProjectLocations - an array of relative paths to projects that can run "dotnet test".
 #   $outputLocation - the relative path where test results should be stored. This path does not have to exist.
+#   $dotnetTestArgs (optional) - arguments to pass to "dotnet test".
 
 $ErrorActionPreference = "Stop"
 
@@ -40,7 +41,7 @@ Try
 		cd $testProjectLocation
 
 		# Execute OpenCover with a target of "dotnet test"
-		$command = (Get-ChildItem ($env:USERPROFILE + '\.nuget\packages\OpenCover'))[0].FullName + '\tools\OpenCover.Console.exe' + ' -register:user -mergeoutput -target:dotnet.exe "-targetargs:test" "-output:' + $outputFile + '" -skipautoprops -returntargetcode "-excludebyattribute:System.Diagnostics.DebuggerNonUserCodeAttribute" "-filter:+[Nito*]*"'
+		$command = (Get-ChildItem ($env:USERPROFILE + '\.nuget\packages\OpenCover'))[0].FullName + '\tools\OpenCover.Console.exe' + ' -register:user -mergeoutput -target:dotnet.exe "-targetargs:test ' + $dotnetTestArgs + '" "-output:' + $outputFile + '" -skipautoprops -returntargetcode "-excludebyattribute:System.Diagnostics.DebuggerNonUserCodeAttribute" "-filter:+[Nito*]*"'
 		Write-Output $command
 		iex $command
 	}
