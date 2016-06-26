@@ -4,13 +4,13 @@
 
 $ErrorActionPreference = "Stop"
 
+md -Force $outputLocation | Out-Null
 $outputPath = (Resolve-Path $outputLocation).Path
 $outputFile = Join-Path $outputPath -childpath 'coverage.xml'
 For ($i = 0; $i -ne $testProjectLocations.length; ++$i)
 {
 	$testProjectLocations[$i] = (Resolve-Path $testProjectLocations[$i]).Path
 }
-
 Remove-Item $outputPath -Force -Recurse
 md -Force $outputLocation | Out-Null
 
