@@ -23,7 +23,7 @@ else
     $shortNewVersion = $newVersion.Substring(0, $newVersionPreIndex);
 }
 
-$files = (dir src/**/*AssemblyInfo.cs) + (dir src/*/project.json) + (dir **/*.nuspec)
+$files = @(dir src/**/*AssemblyInfo.cs) + @(dir src/**/project.json) + @(dir **/*.nuspec)
 
 ForEach($file in $files)
 {
