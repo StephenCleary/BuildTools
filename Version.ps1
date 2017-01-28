@@ -1,4 +1,3 @@
-param([String]$oldVersion="", [String]$newVersion="")
 if (($oldVersion -eq "") -or ($newVersion -eq ""))
 {
     throw [InvalidOperationException] "Pass the current version and the new version numbers to this script."
