@@ -27,13 +27,18 @@ $files = @(dir src/**/*AssemblyInfo.cs) + @(dir src/**/project.json) + @(dir **/
 
 ForEach($file in $files)
 {
-    $originalContent = [String]::Join("`r`n", (Get-Content $file))
-    $content = $originalContent.Replace($oldVersion, $newVersion)
-    if ($shortOldVersion -ne $shortNewVersion)
+    $content = $originalContent = Get-Content $file
+    if ($file.FullName.EndsWith(".cs"))
     {
-        $content = $content.Replace($shortOldVersion, $shortNewVersion)
+        $content = $content -replace "AssemblyVersion\(`"$shortOldVersion`"\)", "AssemblyVersion(`"$shortNewVersion`")"
+        $content = $content -replace "AssemblyFileVersion\(`"$shortOldVersion`"\)", "AssemblyFileVersion(`"$shortNewVersion`")"
+        $content = $content -replace "AssemblyInformationalVersion\(`"$oldVersion`"\)", "AssemblyInformationalVersion(`"$newVersion`")"
     }
-    if ($originalContent -ne $content)
+    else
+    {
+        $content = $content -replace "$oldVersion", "$newVersion"
+    }
+    if ([String]::Join("`r`n", $originalContent) -ne [String]::Join("`r`n", $content))
     {
         Set-Content -Value $content -Path $file
         Write-Output "Updated $file"
