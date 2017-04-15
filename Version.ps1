@@ -28,6 +28,7 @@ else
 }
 
 $files = @(dir SharedAssemblyInfo.cs -recurse) + @(dir src/*/*.csproj) + @(dir *.nuspec -recurse)
+$Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $False
 
 ForEach($file in $files)
 {
@@ -37,15 +38,22 @@ ForEach($file in $files)
         $content = $content -replace "AssemblyVersion\(`"$shortOldVersion`"\)", "AssemblyVersion(`"$shortNewVersion`")"
         $content = $content -replace "AssemblyFileVersion\(`"$shortOldVersion`"\)", "AssemblyFileVersion(`"$shortNewVersion`")"
         $content = $content -replace "AssemblyInformationalVersion\(`"$oldVersion`"\)", "AssemblyInformationalVersion(`"$newVersion`")"
+		$encoding = "ASCII"
     }
-    else
+	elseif ($file.FullName.EndsWith(".csproj"))
     {
         $content = $content -replace "<VersionPrefix>$shortOldVersion</VersionPrefix>", "<VersionPrefix>$shortNewVersion</VersionPrefix>"
 		$content = $content -replace "<VersionSuffix>$oldVersionSuffix</VersionSuffix>", "<VersionSuffix>$newVersionSuffix</VersionSuffix>"
+		$encoding = "UTF8"
     }
+	else
+	{
+		$content = $content -replace "$oldVersion", "$newVersion"
+		$encoding = "ASCII"
+	}
     if ([String]::Join("`r`n", $originalContent) -ne [String]::Join("`r`n", $content))
     {
-        Set-Content -Value $content -Path $file -Encoding UTF8
+		Set-Content -Value $content -Path $file -Encoding $encoding
         Write-Output "Updated $file"
     }
 }
