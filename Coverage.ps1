@@ -41,7 +41,7 @@ Try
 		cd $testProjectLocation
 
 		# Execute OpenCover with a target of "dotnet test"
-		$command = (Get-ChildItem ($env:USERPROFILE + '\.nuget\packages\OpenCover'))[0].FullName + '\tools\OpenCover.Console.exe' + ' -register:user -oldStyle -mergeoutput -target:dotnet.exe "-targetargs:xunit ' + $dotnetTestArgs + '" "-output:' + $outputFile + '" -skipautoprops -returntargetcode "-excludebyattribute:System.Diagnostics.DebuggerNonUserCodeAttribute" "-filter:+[Nito*]*"'
+		$command = (Get-ChildItem ($env:USERPROFILE + '\.nuget\packages\OpenCover'))[0].FullName + '\tools\OpenCover.Console.exe' + ' -register:user -oldStyle -mergeoutput -target:dotnet.exe "-targetargs:test ' + $dotnetTestArgs + '" "-output:' + $outputFile + '" -skipautoprops -returntargetcode "-excludebyattribute:System.Diagnostics.DebuggerNonUserCodeAttribute" "-filter:+[Nito*]*"'
 		Write-Output $command
 		iex $command
 	}
