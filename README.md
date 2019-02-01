@@ -15,11 +15,11 @@ Effects:
 ## Build.ps1
 
 Does a single `restore` followed by a `pack` for each project under `src`. This script assumes:
-- The `.sln` file is in the current directory.
+- A single `.sln` file is in the current directory, with referenes to all projects under `src`.
 - Each project to build is in a subfolder under `src`.
 
 ## Coverage.ps1
 
-When run locally, uses `OpenCover` and `ReportGenerator` to create a code coverage report.
+When run locally, uses `coverlet` and `ReportGenerator` to create a code coverage report. `ReportGenerator` will be installed if necessary.
 
-When run on a build machine, uses `OpenCover` and `coveralls.io` to update code coverage metrics.
+When run on a build machine, uses `coverlet` and `codecov.io` to update code coverage metrics. `coveralls.net` will be installed if necessary.

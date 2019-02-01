@@ -1,68 +1,82 @@
 # Expected variables:
-#   $testProjectLocations - an array of relative paths to projects that can run "dotnet test".
-#   $outputLocation - the relative path where test results should be stored. This path does not have to exist.
-#   $dotnetTestArgs (optional) - arguments to pass to "dotnet test".
+#   $testProjectLocations (optional) - an array of relative paths to projects that can run "dotnet test". Defaults to all subdirectories under 'test'.
+#   $outputLocation (optional) - the relative path where test results should be stored. This path does not have to exist. Defaults to 'testResults'.
+#   $dotnetTestArgs (optional) - additional arguments to pass to "dotnet test". Defaults to the empty string.
+#   $toolsLocation (optional) - the relative path where tools are stored. This path does not have to exist. Defaults to 'tools'.
 
 $ErrorActionPreference = "Stop"
 
-md -Force $outputLocation | Out-Null
-$outputPath = (Resolve-Path $outputLocation).Path
-$outputFile = Join-Path $outputPath -childpath 'coverage.xml'
-For ($i = 0; $i -ne $testProjectLocations.length; ++$i)
-{
-	$testProjectLocations[$i] = (Resolve-Path $testProjectLocations[$i]).Path
+Function DefaultValue($value, $default) {
+	if ($null -eq $value) { $default } else { $value }
 }
-Remove-Item $outputPath -Force -Recurse
-md -Force $outputLocation | Out-Null
 
+Function EndPathInSlash([string]$path) {
+	if ($path[-1] -ne '/' -and $path[-1] -ne '\') { $path + '/' } else { $path }
+}
+
+$toolsLocation = DefaultValue $toolsLocation 'tools\'
+$toolsLocation = EndPathInSlash $toolsLocation
+$outputLocation = DefaultValue $outputLocation 'testResults\'
+$outputLocation = EndPathInSlash $outputLocation
+if ($null -eq $testProjectLocations) {
+  $testProjectLocations = Get-ChildItem 'test' | ForEach-Object FullName
+} else {
+	for ($i = 0; $i -ne $testProjectLocations.length; ++$i) {
+		$testProjectLocations[$i] = (Resolve-Path $testProjectLocations[$i]).Path
+	}
+}
+
+Function ResolveAndForcePath([string]$relativePath) {
+	mkdir -Force $relativePath | Out-Null
+	return (Resolve-Path $relativePath).Path
+}
+
+Function WriteAndExecute([string]$command) {
+	Write-Output $command
+	Invoke-Expression $command
+}
+
+$toolsPath = ResolveAndForcePath $toolsLocation
+$outputPath = ResolveAndForcePath $outputLocation
+$mergeFile = Join-Path $outputPath -childpath 'coverage.json'
+$uploadFile = Join-Path $outputPath -childpath 'coverage.opencover.xml'
+
+Remove-Item ($outputPath + '*') -Force -Recurse
+
+Write-Output $toolsPath
 Write-Output $outputPath
-Write-Output $outputFile
+Write-Output $mergeFile
+Write-Output $uploadFile
+Write-Output ($testProjectLocations -join ', ')
 
-Function Verify-OnlyOnePackage
-{
-	param ($name)
-
-	$location = $env:USERPROFILE + '\.nuget\packages\' + $name
-	If ((Get-ChildItem $location).Count -ne 1)
-	{
-		throw 'Invalid number of packages installed at ' + $location
-	}
-}
-
-Verify-OnlyOnePackage 'OpenCover'
-Verify-OnlyOnePackage 'coveralls.io'
-Verify-OnlyOnePackage 'ReportGenerator'
-
-pushd
-Try
-{
-	ForEach ($testProjectLocation in $testProjectLocations)
-	{
-		cd $testProjectLocation
-
-		# Execute OpenCover with a target of "dotnet test"
-		$command = (Get-ChildItem ($env:USERPROFILE + '\.nuget\packages\OpenCover'))[0].FullName + '\tools\OpenCover.Console.exe' + ' -register:user -oldStyle -mergeoutput -target:dotnet.exe "-targetargs:test --no-restore ' + $dotnetTestArgs + '" "-output:' + $outputFile + '" -skipautoprops -returntargetcode "-excludebyattribute:System.Diagnostics.DebuggerNonUserCodeAttribute" "-filter:+[Nito*]*"'
-		Write-Output $command
-		iex $command
+Push-Location
+try {
+	# Run the tests
+	foreach ($testProjectLocation in $testProjectLocations) {
+		Set-Location $testProjectLocation
+		WriteAndExecute "dotnet test /p:CollectCoverage=true /p:Include=`"[Nito.*]*`" /p:ExcludeByAttribute=System.Diagnostics.DebuggerNonUserCodeAttribute /p:CoverletOutput=`"${outputPath}`" /p:MergeWith=`"${mergeFile}`" /p:CoverletOutputFormat=opencover%2Cjson ${dotnetTestArgs}"
 	}
 
-	# Either display or publish the results
-	If ($env:CI -eq 'True')
-	{
-		$command = (Get-ChildItem ($env:USERPROFILE + '\.nuget\packages\coveralls.io'))[0].FullName + '\tools\coveralls.net.exe' + ' --opencover "' + $outputFile + '" --full-sources'
-		Write-Output $command
-		iex $command
-	}
-	Else
-	{
-		$command = (Get-ChildItem ($env:USERPROFILE + '\.nuget\packages\ReportGenerator'))[0].FullName + '\tools\net47\ReportGenerator.exe -reports:"' + $outputFile + '" -targetdir:"' + $outputPath + '"'
-		Write-Output $command
-		iex $command
-		cd $outputPath
+	# Publish the results
+	if ($env:CI -eq 'True') {
+		# TODO: Replace this with dotnet tool when https://github.com/codecov/codecov-exe/issues/44 is done.
+		if (-not (Test-Path "${toolsPath}Codecov")) {
+			mkdir -Force "${toolsPath}Codecov" | Out-Null
+			(New-Object System.Net.WebClient).DownloadFile("https://github.com/codecov/codecov-exe/releases/download/1.1.0/Codecov.zip", "${toolsPath}Codecov/Codecov.zip")
+			Push-Location
+			try {
+				Set-Location "${toolsPath}Codecov"
+				Expand-Archive .\Codecov.zip -DestinationPath .
+			} finally {	Pop-Location }
+		}
+		WriteAndExecute ". `"${toolsPath}Codecov/codecov.exe`" -f `"${uploadFile}`""
+
+		#WriteAndExecute "dotnet tool install coveralls.net --tool-path `"${toolsPath}`""
+		#WriteAndExecute ". `"${toolsPath}csmacnz.Coveralls`" --opencover -i `"${uploadFile}`" --full-sources"
+	} else {
+		WriteAndExecute "dotnet tool install dotnet-reportgenerator-globaltool --tool-path `"${toolsPath}`""
+		WriteAndExecute ". `"${toolsPath}reportgenerator`" -reports:`"${uploadFile}`" -targetdir:`"${outputPath}`""
+		Set-Location $outputPath
 		./index.htm
 	}
-}
-Finally
-{
-	popd
-}
+} finally { Pop-Location }
