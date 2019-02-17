@@ -60,7 +60,7 @@ try {
 	# Publish the results
 	if ($env:CI -eq 'True') {
 		WriteAndExecute "dotnet tool install coveralls.net --tool-path `"${toolsPath}`""
-		WriteAndExecute ". `"${toolsPath}csmacnz.Coveralls`" --opencover -i `"${uploadFile}`" --full-sources"
+		WriteAndExecute ". `"${toolsPath}csmacnz.Coveralls`" --opencover -i `"${uploadFile}`""
 	} else {
 		WriteAndExecute "dotnet tool install dotnet-reportgenerator-globaltool --tool-path `"${toolsPath}`""
 		WriteAndExecute ". `"${toolsPath}reportgenerator`" -reports:`"${uploadFile}`" -targetdir:`"${outputPath}`""
