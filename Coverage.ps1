@@ -59,20 +59,8 @@ try {
 
 	# Publish the results
 	if ($env:CI -eq 'True') {
-		# TODO: Replace this with dotnet tool when https://github.com/codecov/codecov-exe/issues/44 is done.
-		if (-not (Test-Path "${toolsPath}Codecov")) {
-			mkdir -Force "${toolsPath}Codecov" | Out-Null
-			(New-Object System.Net.WebClient).DownloadFile("https://github.com/codecov/codecov-exe/releases/download/1.1.0/Codecov.zip", "${toolsPath}Codecov/Codecov.zip")
-			Push-Location
-			try {
-				Set-Location "${toolsPath}Codecov"
-				Expand-Archive .\Codecov.zip -DestinationPath .
-			} finally {	Pop-Location }
-		}
-		WriteAndExecute ". `"${toolsPath}Codecov/codecov.exe`" -f `"${uploadFile}`""
-
-		#WriteAndExecute "dotnet tool install coveralls.net --tool-path `"${toolsPath}`""
-		#WriteAndExecute ". `"${toolsPath}csmacnz.Coveralls`" --opencover -i `"${uploadFile}`" --full-sources"
+		WriteAndExecute "dotnet tool install coveralls.net --tool-path `"${toolsPath}`""
+		WriteAndExecute ". `"${toolsPath}csmacnz.Coveralls`" --opencover -i `"${uploadFile}`" --full-sources"
 	} else {
 		WriteAndExecute "dotnet tool install dotnet-reportgenerator-globaltool --tool-path `"${toolsPath}`""
 		WriteAndExecute ". `"${toolsPath}reportgenerator`" -reports:`"${uploadFile}`" -targetdir:`"${outputPath}`""
