@@ -1,25 +1,28 @@
 # BuildTools
 Miscellaneous tools for building .NET Core libraries.
 
-## Version.ps1
+## .github/workflows/build.yml
 
-Update version numbers in source files.
+Common build script. On every push, regardless of branch:
+- Builds.
+- Runs all tests, collecting code coverage.
+- Creates NuGet packages.
+- Uploads results.
+  - Note: NuGet publishing will fail unless the version number is new.
 
-Usage: `./Version.ps1 <oldversion> <newversion>`. This utility understands prerelease versioning.
+## .github/workflows/tag.yml
 
-Effects:
-- `SharedAssemblyInfo.cs` files will have their `AssemblyVersion`, `AssemblyFileVersion`, and `AssemblyInformationalVersion` attributes updated.
-- `*.csproj` files will have their `VersionPrefix` and `VersionSuffix` elements updated.
-- `*.nuspec` files will have the old version text replaced with the new version text. Note that this may update versions of dependencies, so you need to check the output.
+On every push, regardless of branch:
+- Check to see if the current project version has a tag; if not, creates and pushes a tag to the repo.
 
-## Build.ps1
+## Directory.Build.props
 
-Does a single `restore` followed by a `pack` for each project under `src`. This script assumes:
-- A single `.sln` file is in the current directory, with referenes to all projects under `src`.
-- Each project to build is in a subfolder under `src`.
+Enforces the [C# OSS project checklist/guidelines](https://github.com/StephenCleary/Docs/tree/master/libraries).
 
-## Coverage.ps1
+This file expects another file to be present - `project.props` - which should define common properties such as `Author`.
 
-When run locally, uses `coverlet` and `ReportGenerator` to create a code coverage report. `ReportGenerator` will be installed if necessary.
+## Directory.Build.targets
 
-When run on a build machine, uses `coverlet` and `codecov.io` to update code coverage metrics. `coveralls.net` will be installed if necessary.
+Enables two additional features, which can be enabled in the project file or `project.props`:
+- Metapackages. Set `<IsMetapackage>true</IsMetapackage>` to create a metapackage (a NuGet package that only references other NuGet packages).
+- Dotnet tools. Set `<ToolCommandName>mytool</ToolCommandName>` to create a dotnet tool package.
